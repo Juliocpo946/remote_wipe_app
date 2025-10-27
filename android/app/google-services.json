@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "513161749081",
+    "project_id": "remotewipeapp",
+    "storage_bucket": "remotewipeapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:513161749081:android:ac9495dc56b19309054748",
+        "android_client_info": {
+          "package_name": "com.example.remote_wipe_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDE7iDyffy1qWoXE4X43_sq_kJy3q8zCJU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
