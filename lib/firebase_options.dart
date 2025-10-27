@@ -17,11 +17,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'TU_API_KEY',
-    appId: 'TU_APP_ID',
-    messagingSenderId: 'TU_SENDER_ID',
-    projectId: 'TU_PROJECT_ID',
-    storageBucket: 'TU_STORAGE_BUCKET',
+    apiKey: 'AIzaSyDE7iDyffy1qWoXE4X43_sq_kJy3q8zCJU',
+    appId: '1:513161749081:android:ac9495dc56b19309054748',
+    messagingSenderId: '513161749081',
+    projectId: 'remotewipeapp',
+    storageBucket: 'remotewipeapp.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

@@ -16,12 +16,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final _passwordController = TextEditingController();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  final _prefKeyController = TextEditingController();
-  final _prefValueController = TextEditingController();
 
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _documents = [];
-  String? _prefValue;
 
   @override
   void initState() {
@@ -40,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _saveUser() async {
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar('Por favor, completa todos los campos de usuario.');
       return;
     }
     await DataManager.instance.saveUser(
@@ -51,10 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _emailController.clear();
     _passwordController.clear();
     await _loadData();
+    _showSnackBar('Usuario guardado correctamente.');
   }
 
   Future<void> _saveDocument() async {
     if (_titleController.text.isEmpty || _contentController.text.isEmpty) {
+      _showSnackBar('Por favor, completa todos los campos de documento.');
       return;
     }
     await DataManager.instance.saveDocument(
@@ -64,36 +64,23 @@ class _HomeScreenState extends State<HomeScreen> {
     _titleController.clear();
     _contentController.clear();
     await _loadData();
-  }
-
-  Future<void> _savePreference() async {
-    if (_prefKeyController.text.isEmpty || _prefValueController.text.isEmpty) {
-      return;
-    }
-    await DataManager.instance.saveToPreferences(
-      _prefKeyController.text,
-      _prefValueController.text,
-    );
-    _prefKeyController.clear();
-    _prefValueController.clear();
-  }
-
-  Future<void> _loadPreference() async {
-    if (_prefKeyController.text.isEmpty) {
-      return;
-    }
-    final value = await DataManager.instance.getFromPreferences(_prefKeyController.text);
-    setState(() {
-      _prefValue = value;
-    });
+    _showSnackBar('Documento guardado correctamente.');
   }
 
   Future<void> _wipeData() async {
     await DataManager.instance.wipeAllData();
     await _loadData();
-    setState(() {
-      _prefValue = null;
-    });
+    _showSnackBar('Todos los datos han sido borrados.');
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -107,15 +94,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildTokenSection(token),
             const SizedBox(height: 24),
             _buildUserSection(),
             const SizedBox(height: 24),
             _buildDocumentSection(),
-            const SizedBox(height: 24),
-            _buildPreferencesSection(),
             const SizedBox(height: 24),
             _buildWipeButton(),
           ],
@@ -125,35 +110,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTokenSection(String token) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildSectionCard(
+      title: 'FCM Token',
+      child: Row(
         children: [
-          const Text(
-            'FCM Token',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          Expanded(
+            child: Text(
+              token,
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  token,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.copy, color: Colors.white),
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: token));
-                },
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.copy, color: Colors.white, size: 20),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: token));
+              _showSnackBar('Token copiado al portapapeles.');
+            },
           ),
         ],
       ),
@@ -161,149 +135,138 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildUserSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(8),
-      ),
+    return _buildSectionCard(
+      title: 'Usuarios (Base de Datos)',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Usuarios',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(_nameController, 'Nombre'),
+          _buildTextField(_nameController, 'Nombre', icon: Icons.person),
           const SizedBox(height: 8),
-          _buildTextField(_emailController, 'Email'),
+          _buildTextField(_emailController, 'Email', icon: Icons.email),
           const SizedBox(height: 8),
-          _buildTextField(_passwordController, 'Contraseña', obscure: true),
+          _buildTextField(_passwordController, 'Contraseña', obscure: true, icon: Icons.lock),
           const SizedBox(height: 16),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: _saveUser,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF004D40),
-            ),
-            child: const Text('Guardar Usuario'),
+            style: _buttonStyle(),
+            icon: const Icon(Icons.save, size: 18),
+            label: const Text('Guardar Usuario'),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           ..._users.map((user) => ListTile(
+            leading: const Icon(Icons.account_circle, color: Colors.white70),
             title: Text(user['name'], style: const TextStyle(color: Colors.white)),
             subtitle: Text(user['email'], style: const TextStyle(color: Colors.white70)),
             dense: true,
           )),
+          if (_users.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'No hay usuarios guardados.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic),
+              ),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildDocumentSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(8),
-      ),
+    return _buildSectionCard(
+      title: 'Documentos (Base de Datos)',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Documentos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(_titleController, 'Título'),
+          _buildTextField(_titleController, 'Título', icon: Icons.title),
           const SizedBox(height: 8),
-          _buildTextField(_contentController, 'Contenido', maxLines: 3),
+          _buildTextField(_contentController, 'Contenido', maxLines: 3, icon: Icons.article),
           const SizedBox(height: 16),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: _saveDocument,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF004D40),
-            ),
-            child: const Text('Guardar Documento'),
+            style: _buttonStyle(),
+            icon: const Icon(Icons.save, size: 18),
+            label: const Text('Guardar Documento'),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           ..._documents.map((doc) => ListTile(
+            leading: const Icon(Icons.description, color: Colors.white70),
             title: Text(doc['title'], style: const TextStyle(color: Colors.white)),
-            subtitle: Text(doc['content'], style: const TextStyle(color: Colors.white70)),
+            subtitle: Text(
+              doc['content'],
+              style: const TextStyle(color: Colors.white70),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             dense: true,
           )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreferencesSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Preferencias',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(_prefKeyController, 'Clave'),
-          const SizedBox(height: 8),
-          _buildTextField(_prefValueController, 'Valor'),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              ElevatedButton(
-                onPressed: _savePreference,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF004D40),
-                ),
-                child: const Text('Guardar'),
+          if (_documents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'No hay documentos guardados.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: _loadPreference,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF004D40),
-                ),
-                child: const Text('Cargar'),
-              ),
-            ],
-          ),
-          if (_prefValue != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Valor: $_prefValue',
-              style: const TextStyle(color: Colors.white70),
             ),
-          ],
         ],
       ),
     );
   }
 
   Widget _buildWipeButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _wipeData,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A1A1A),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+    return ElevatedButton.icon(
+      onPressed: _wipeData,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFB71C1C),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: const Text(
-          'LIMPIAR DATOS',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+      ),
+      icon: const Icon(Icons.warning_amber_rounded, size: 18),
+      label: const Text(
+        'BORRAR TODOS LOS DATOS',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {bool obscure = false, int maxLines = 1}) {
+  Widget _buildSectionCard({required String title, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  ButtonStyle _buttonStyle({Color color = const Color(0xFF004D40)}) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: color,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, {bool obscure = false, int maxLines = 1, IconData? icon}) {
     return TextField(
       controller: controller,
       obscureText: obscure,
@@ -312,11 +275,14 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white30),
+        prefixIcon: icon != null ? Icon(icon, color: Colors.white70, size: 20) : null,
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white30),
+          borderRadius: BorderRadius.circular(8),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white),
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );
@@ -329,8 +295,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _passwordController.dispose();
     _titleController.dispose();
     _contentController.dispose();
-    _prefKeyController.dispose();
-    _prefValueController.dispose();
     super.dispose();
   }
 }
